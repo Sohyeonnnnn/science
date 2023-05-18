@@ -1,0 +1,228 @@
+<p><strong>Increasing access to the NHANES 1988-2018 surveys &amp; mortality linkage data via a user-friendly Stata program</strong></p>
+<p>Junming Gong, Mu Jin, Sohyeon Kwon, and Xueer Zhang</p>
+<p><strong>Background:</strong></p>
+<p>We are developing skills that allow us to access publicly available large databases that may be queried to answer fundamental questions about the publics health. These datasets might exist in formats unfamiliar to Stata users or in sizes that cripple ones workflow.</p>
+<p>In our first two weeks, we curated a dataset with all the <a href="https://data.nber.org/mortality/">mortality records</a> in the United States from 1959-2017 and wrote a basic Stata script that output a <a href="https://jhustata.github.io/book/_downloads/9359d2ae4f8ad2efcfe2fd34e3547c35/mortality.png">two-way plot</a> showing annual trends in number of deaths during this period. In the subsequent two weeks we wrote a Stata program, <code>mortality</code>, that allows the user to define the time-period of interest, plus other parameters such as cause-of-death, and ultimately produce a similar two-way plot with the convenience of a Stata command.</p>
+<p>Our goal for the second-half of the class is to leverage this experience to give Stata users access to the entire range of NHANES surveys via a simple command, <code>nhanes</code>, with several user-defined options. We have not yet articulated what these options are but will do so on an emerging basis each week.</p>
+<p>Today let&rsquo;s start by reading in the alpha-version of this program, which we adopted from Chapter: <code>r(mean)</code> of the PH.340.600 book. Depending on your Stata edition, this program will either import a dataset with 20,000 observations and 3600 variables or 20,000 observations and 22 variables:</p>
+<pre><code>. capture program drop nhanes
+
+. program define nhanes 
+  1.     
+.         preserve 
+  2.             
+.                 qui {
+  3.                         
+.                         if 0 { //background:r(mean) 
+  4.                                 
+.                                 1. Stata/BE or IC
+  5.                                 2. r(k) &lt; 2048
+  6.                                 3. exam.DAT: r(k) == 2368
+  7.                                 4. inaccessible to jhustata
+  8.                                 5. program to grant access
+  9.                                 
+.                         }
+ 10.                         
+.                         if 1 { //methods:$keepvars
+ 11.                                 
+.                                 timer on 1
+ 12.                                 
+.                                 global github https://raw.githubusercontent.com/
+ 13.                                 global jhustata jhustata/book/main/
+ 14.                                 global keepvars HSAGEIR BMPHT BMPWT HAZA8AK1 CEP GHP HAB1
+ 15.                                 
+.                                 timer off 1
+ 16.                                                                                         
+.                         }
+ 17.                         
+.                         if 2 { //results:.dofiles
+ 18.                         
+.                             timer on 2
+ 19.                                 
+.                                 clear
+ 20.                                 
+.                                 do ${github}${$jhustata}nh3mort.do 
+ 21.                                 
+.                                 if c(edition_real) == &quot;BE&quot;  | c(edition_real) == &quot;IC&quot; {
+ 22.                                         
+.                                         clear 
+ 23.                                         
+.                                         do ${github}${$jhustata}nhanes-alpha-if2.do 
+ 24.                                         
+.                                 }
+ 25.                                 
+.                                 else { 
+ 26.                                         
+.                                         clear 
+ 27.                                         
+.                                         do ${github}${$jhustata}nhanes-alpha-if0.do
+ 28.                                         
+.                                 }
+ 29.                                 
+.                                 
+.                                 timer off 2
+ 30.                                 
+.                         }
+ 31.                         
+.                         if 3 { //conclusions:queueing
+ 32.                         
+.                             timer on 3
+ 33.                         
+.                             timer on 31
+ 34.                                 clear
+ 35.                                 do adult.do
+ 36.                                 rename *,lower
+ 37.                                 save adult.dta,replace 
+ 38.                                 timer off 31
+ 39.                                 
+.                                 timer on 32
+ 40.                                 clear 
+ 41.                                 do exam.do
+ 42.                                 rename *,lower
+ 43.                                 save exam.dta,replace 
+ 44.                                 timer off 32
+ 45.                                 
+.                                 timer on 33
+ 46.                                 clear
+ 47.                                 do lab.do
+ 48.                                 rename *,lower
+ 49.                                 save lab.dta,replace 
+ 50.                                 timer off 33
+ 51.                                 
+.                                 timer off 3
+ 52.                                 
+.                         }
+ 53. 
+.                         if 4 { //acknowledge:linkage
+ 54.                                 
+.                                 timer on 4
+ 55.                                 
+.                                 use adult, clear
+ 56.                                 merge 1:1 seqn using exam,nogen
+ 57.                                 merge 1:1 seqn using lab,nogen
+ 58.                                 merge 1:1 seqn using nh3mort,nogen keep(matched)
+ 59.                                 
+.                                 timer off 4
+ 60.                                 
+.                         }
+ 61.                         
+.                         if 5 { //dataset4class:
+ 62.                                 
+.                                 timer on 5
+ 63.                                 
+.                                 compress
+ 64.                                 lab dat &quot;NHANES 1988-1994, survey &amp; mortality&quot;
+ 65.                                 save &quot;nh3andmort.dta&quot;, replace 
+ 66.                                 
+.                                 timer off 5
+ 67.                                 
+.                         }
+ 68.                         
+.                         if 6 { //survivalanalysis:
+ 69.                                 
+.                                 timer on 6
+ 70.                                 
+.                         lookfor mort
+ 71.                         codebook mortstat
+ 72.                         lookfor follow
+ 73.                         g years=permth_exm/12
+ 74. 
+.                         lookfor health
+ 75.                         codebook hab1
+ 76.                         global subgroup: var lab hab1
+ 77.     
+.                         stset years, fail(mortstat)
+ 78. 
+.                         #delimit ;
+delimiter now ;
+.                         sts graph if inrange(hab1,1,5),
+&gt;                            by(hab1)
+&gt;                            fail
+&gt;                            ti(&quot;Mortality in NHANES III&quot;,pos(11))
+&gt;                            subti(&quot;by self report: ${subgroup}&quot;,pos(11))
+&gt;                            yti(&quot;%&quot;,orientation(horizontal))
+&gt;                            xti(&quot;Years&quot;)
+&gt;                            per(100)
+&gt;                            ylab(0(20)80,
+&gt;                                format(%3.0f)
+&gt;                                angle(360)
+&gt;                            )
+&gt;                            legend(on
+&gt;                                lab(1 &quot;Excellent&quot;)
+&gt;                                lab(2 &quot;Good&quot;)
+&gt;                                lab(3 &quot;Fair&quot;)
+&gt;                                lab(4 &quot;Bad&quot;)
+&gt;                                lab(5 &quot;Poor&quot;)
+&gt;                                ring(0)
+&gt;                                pos(11)
+&gt;                                col(1)
+&gt;                                order(5 4 3 2 1)
+&gt;                            )
+&gt;                            note(&quot;Source: RDC/NCHS/CDC/DHHS&quot;)  
+&gt;                         ;
+ 79.                         #delimit cr
+delimiter now cr
+.                         
+.                         graph export nh3andmort.png,replace 
+ 80.                         
+.                         stcox i.hab1 if inrange(hab1,1,5)
+ 81.                 
+.                 
+.                                 timer off 6
+ 82.                                 
+.                         }
+ 83.                         
+.                         noi timer list 
+ 84.                         
+.                 }
+ 85.                         
+.         restore 
+ 86.         
+. end 
+
+. nhanes
+   1:      0.01 /        7 =       0.0014
+   2:     33.71 /        7 =       4.8151
+   3:   2061.18 /        7 =     294.4536
+   4:     67.54 /        7 =       9.6487
+   5:    333.24 /        7 =      47.6056
+   6:     45.45 /        7 =       6.4924
+  31:    434.31 /        7 =      62.0446
+  32:   1267.31 /        7 =     181.0440
+  33:    359.55 /        7 =      51.3649
+
+</code></pre>
+<p><strong>Methods:</strong></p>
+<p>For Stata/BE or IC users this current program outputs an NHANES dataset with 22 pre-specified variables. Over the next week we shall release the next iteration of the program, which will allow the user to list the variables they wish to be imported from the CDC website.</p>
+<p><strong>Results:</strong></p>
+<p>When a Kaplan-Meier graph pops up on your screen, that will be your cue that the program has run to completion and that you have an NHANES III dataset in your <code>pwd</code>.</p>
+<pre><code>. set scheme s2color
+
+. nhanes
+
+</code></pre>
+<p><img src="Graph2.svg" ></p>
+<p><strong>Conclusions:</strong></p>
+<p>Now that we have established our workflow, updates to our program will be published on a weekly basis and the URL will be sent to the student team as well as the teaching team in the first five minutes of each class session. A question not to ask: shall we ever need to annotate our .do files if we can offer much richer documentation in e-books built using .html?</p>
+<pre><code>. use nh3andmort, clear
+(NHANES 1988-1994, survey &amp; mortality)
+
+. di &quot;obs: `c(N)' &amp; vars: `c(k)'&quot;      
+obs: 19599 &amp; vars: 3643
+
+</code></pre>
+<p><strong>Acknowledgments:</strong></p>
+<p>We initially published our Stata output in a Jupiter-book hosted by Github. All the .html content of the book was produced in a Python environment; however, <a href="nhanes.html">Stata .html output</a> will gradually replace the Python-based output of the book as we truly become advanced Stata users!</p>
+<p>VS Code terminal is our IDE choice for committing and pushing our git content to our hub and have established a seamless process for updating our publication.</p>
+<p><strong>References:</strong></p>
+<ol>
+<li><a href="https://jhustata.github.io/book/jjj.html">https://jhustata.github.io/book/jjj.html</a></li>
+<li><a href="https://jupyterbook.org/en/stable/start/your-first-book.html">https://jupyterbook.org/en/stable/start/your-first-book.html</a></li>
+<li><a href="https://www.stata.com/stata-news/news36-1/spotlight-markdown/">https://www.stata.com/stata-news/news36-1/spotlight-markdown/</a></li>
+<li><a href="https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.sas">https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.sas</a></li>
+<li><a href="https://jhustata.github.io/class700/intro.html">https://jhustata.github.io/class700/intro.html</a></li>
+<li><a href="https://www.jhsph.edu/courses/course/37447/2022/340.700.71/advanced-stata-programming">https://www.jhsph.edu/courses/course/37447/2022/340.700.71/advanced-stata-programming</a></li>
+<li><a href="https://www.surgjournal.com/article/S0039-6060(18)30076-X/fulltext">Muzaale AD. Databases for surgical health services research: National Health and Nutrition Examination Survey. Surgery. 2019 May;165(5):873-875</a></li>
+<li><a href="https://www.ssc.wisc.edu/~hemken/Stataworkshops/dyndoc%20review/Review.html">https://www.ssc.wisc.edu/~hemken/Stataworkshops/dyndoc%20review/Review.html</a></li>
+<li><a href="https://towardsdatascience.com/write-markdown-latex-in-the-jupyter-notebook-10985edb91fd">https://towardsdatascience.com/write-markdown-latex-in-the-jupyter-notebook-10985edb91fd</a></li>
+</ol>
