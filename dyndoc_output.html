@@ -1,466 +1,228 @@
+<p><strong>Increasing access to the NHANES 1988-2018 surveys &amp; mortality linkage data via a user-friendly Stata program</strong></p>
+<p>Junming Gong, Mu Jin, Sohyeon Kwon, and Xueer Zhang</p>
+<p><strong>Background:</strong></p>
+<p>We are developing skills that allow us to access publicly available large databases that may be queried to answer fundamental questions about the publics health. These datasets might exist in formats unfamiliar to Stata users or in sizes that cripple ones workflow.</p>
+<p>In our first two weeks, we curated a dataset with all the <a href="https://data.nber.org/mortality/">mortality records</a> in the United States from 1959-2017 and wrote a basic Stata script that output a <a href="https://jhustata.github.io/book/_downloads/9359d2ae4f8ad2efcfe2fd34e3547c35/mortality.png">two-way plot</a> showing annual trends in number of deaths during this period. In the subsequent two weeks we wrote a Stata program, <code>mortality</code>, that allows the user to define the time-period of interest, plus other parameters such as cause-of-death, and ultimately produce a similar two-way plot with the convenience of a Stata command.</p>
+<p>Our goal for the second-half of the class is to leverage this experience to give Stata users access to the entire range of NHANES surveys via a simple command, <code>nhanes</code>, with several user-defined options. We have not yet articulated what these options are but will do so on an emerging basis each week.</p>
+<p>Today let&rsquo;s start by reading in the alpha-version of this program, which we adopted from Chapter: <code>r(mean)</code> of the PH.340.600 book. Depending on your Stata edition, this program will either import a dataset with 20,000 observations and 3600 variables or 20,000 observations and 22 variables:</p>
+<pre><code>. capture program drop nhanes
 
+. program define nhanes 
+  1.     
+.         preserve 
+  2.             
+.                 qui {
+  3.                         
+.                         if 0 { //background:r(mean) 
+  4.                                 
+.                                 1. Stata/BE or IC
+  5.                                 2. r(k) &lt; 2048
+  6.                                 3. exam.DAT: r(k) == 2368
+  7.                                 4. inaccessible to jhustata
+  8.                                 5. program to grant access
+  9.                                 
+.                         }
+ 10.                         
+.                         if 1 { //methods:$keepvars
+ 11.                                 
+.                                 timer on 1
+ 12.                                 
+.                                 global github https://raw.githubusercontent.com/
+ 13.                                 global jhustata jhustata/book/main/
+ 14.                                 global keepvars HSAGEIR BMPHT BMPWT HAZA8AK1 CEP GHP HAB1
+ 15.                                 
+.                                 timer off 1
+ 16.                                                                                         
+.                         }
+ 17.                         
+.                         if 2 { //results:.dofiles
+ 18.                         
+.                             timer on 2
+ 19.                                 
+.                                 clear
+ 20.                                 
+.                                 do ${github}${$jhustata}nh3mort.do 
+ 21.                                 
+.                                 if c(edition_real) == &quot;BE&quot;  | c(edition_real) == &quot;IC&quot; {
+ 22.                                         
+.                                         clear 
+ 23.                                         
+.                                         do ${github}${$jhustata}nhanes-alpha-if2.do 
+ 24.                                         
+.                                 }
+ 25.                                 
+.                                 else { 
+ 26.                                         
+.                                         clear 
+ 27.                                         
+.                                         do ${github}${$jhustata}nhanes-alpha-if0.do
+ 28.                                         
+.                                 }
+ 29.                                 
+.                                 
+.                                 timer off 2
+ 30.                                 
+.                         }
+ 31.                         
+.                         if 3 { //conclusions:queueing
+ 32.                         
+.                             timer on 3
+ 33.                         
+.                             timer on 31
+ 34.                                 clear
+ 35.                                 do adult.do
+ 36.                                 rename *,lower
+ 37.                                 save adult.dta,replace 
+ 38.                                 timer off 31
+ 39.                                 
+.                                 timer on 32
+ 40.                                 clear 
+ 41.                                 do exam.do
+ 42.                                 rename *,lower
+ 43.                                 save exam.dta,replace 
+ 44.                                 timer off 32
+ 45.                                 
+.                                 timer on 33
+ 46.                                 clear
+ 47.                                 do lab.do
+ 48.                                 rename *,lower
+ 49.                                 save lab.dta,replace 
+ 50.                                 timer off 33
+ 51.                                 
+.                                 timer off 3
+ 52.                                 
+.                         }
+ 53. 
+.                         if 4 { //acknowledge:linkage
+ 54.                                 
+.                                 timer on 4
+ 55.                                 
+.                                 use adult, clear
+ 56.                                 merge 1:1 seqn using exam,nogen
+ 57.                                 merge 1:1 seqn using lab,nogen
+ 58.                                 merge 1:1 seqn using nh3mort,nogen keep(matched)
+ 59.                                 
+.                                 timer off 4
+ 60.                                 
+.                         }
+ 61.                         
+.                         if 5 { //dataset4class:
+ 62.                                 
+.                                 timer on 5
+ 63.                                 
+.                                 compress
+ 64.                                 lab dat &quot;NHANES 1988-1994, survey &amp; mortality&quot;
+ 65.                                 save &quot;nh3andmort.dta&quot;, replace 
+ 66.                                 
+.                                 timer off 5
+ 67.                                 
+.                         }
+ 68.                         
+.                         if 6 { //survivalanalysis:
+ 69.                                 
+.                                 timer on 6
+ 70.                                 
+.                         lookfor mort
+ 71.                         codebook mortstat
+ 72.                         lookfor follow
+ 73.                         g years=permth_exm/12
+ 74. 
+.                         lookfor health
+ 75.                         codebook hab1
+ 76.                         global subgroup: var lab hab1
+ 77.     
+.                         stset years, fail(mortstat)
+ 78. 
+.                         #delimit ;
+delimiter now ;
+.                         sts graph if inrange(hab1,1,5),
+&gt;                            by(hab1)
+&gt;                            fail
+&gt;                            ti(&quot;Mortality in NHANES III&quot;,pos(11))
+&gt;                            subti(&quot;by self report: ${subgroup}&quot;,pos(11))
+&gt;                            yti(&quot;%&quot;,orientation(horizontal))
+&gt;                            xti(&quot;Years&quot;)
+&gt;                            per(100)
+&gt;                            ylab(0(20)80,
+&gt;                                format(%3.0f)
+&gt;                                angle(360)
+&gt;                            )
+&gt;                            legend(on
+&gt;                                lab(1 &quot;Excellent&quot;)
+&gt;                                lab(2 &quot;Good&quot;)
+&gt;                                lab(3 &quot;Fair&quot;)
+&gt;                                lab(4 &quot;Bad&quot;)
+&gt;                                lab(5 &quot;Poor&quot;)
+&gt;                                ring(0)
+&gt;                                pos(11)
+&gt;                                col(1)
+&gt;                                order(5 4 3 2 1)
+&gt;                            )
+&gt;                            note(&quot;Source: RDC/NCHS/CDC/DHHS&quot;)  
+&gt;                         ;
+ 79.                         #delimit cr
+delimiter now cr
+.                         
+.                         graph export nh3andmort.png,replace 
+ 80.                         
+.                         stcox i.hab1 if inrange(hab1,1,5)
+ 81.                 
+.                 
+.                                 timer off 6
+ 82.                                 
+.                         }
+ 83.                         
+.                         noi timer list 
+ 84.                         
+.                 }
+ 85.                         
+.         restore 
+ 86.         
+. end 
 
-<!DOCTYPE html>
+. nhanes
+   1:      0.01 /        7 =       0.0014
+   2:     33.71 /        7 =       4.8151
+   3:   2061.18 /        7 =     294.4536
+   4:     67.54 /        7 =       9.6487
+   5:    333.24 /        7 =      47.6056
+   6:     45.45 /        7 =       6.4924
+  31:    434.31 /        7 =      62.0446
+  32:   1267.31 /        7 =     181.0440
+  33:    359.55 /        7 =      51.3649
 
+</code></pre>
+<p><strong>Methods:</strong></p>
+<p>For Stata/BE or IC users this current program outputs an NHANES dataset with 22 pre-specified variables. Over the next week we shall release the next iteration of the program, which will allow the user to list the variables they wish to be imported from the CDC website.</p>
+<p><strong>Results:</strong></p>
+<p>When a Kaplan-Meier graph pops up on your screen, that will be your cue that the program has run to completion and that you have an NHANES III dataset in your <code>pwd</code>.</p>
+<pre><code>. set scheme s2color
 
-<html lang="en" >
+. nhanes
 
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+</code></pre>
+<p><img src="Graph2.svg" ></p>
+<p><strong>Conclusions:</strong></p>
+<p>Now that we have established our workflow, updates to our program will be published on a weekly basis and the URL will be sent to the student team as well as the teaching team in the first five minutes of each class session. A question not to ask: shall we ever need to annotate our .do files if we can offer much richer documentation in e-books built using .html?</p>
+<pre><code>. use nh3andmort, clear
+(NHANES 1988-1994, survey &amp; mortality)
 
-    <title>dyndoc_output from Stata &#8212; Increasing access to the NHANES 1988-2018 surveys &amp; mortality linkage data via a user-friendly Stata program</title>
-  
-  
-  
-  <script data-cfasync="false">
-    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
-    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
-  </script>
-  
-  <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
-<link href="_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+. di &quot;obs: `c(N)' &amp; vars: `c(k)'&quot;      
+obs: 19599 &amp; vars: 3643
 
-  
-  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
-
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
-    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
-    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
-    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
-    <link rel="stylesheet" type="text/css" href="_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
-  
-  <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
-
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/clipboard.min.js"></script>
-    <script src="_static/copybutton.js"></script>
-    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
-    <script>let toggleHintShow = 'Click to show';</script>
-    <script>let toggleHintHide = 'Click to hide';</script>
-    <script>let toggleOpenOnPrint = 'true';</script>
-    <script src="_static/togglebutton.js"></script>
-    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
-    <script src="_static/design-tabs.js"></script>
-    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
-const thebe_selector = ".thebe,.cell"
-const thebe_selector_input = "pre"
-const thebe_selector_output = ".output, .cell_output"
-</script>
-    <script async="async" src="_static/sphinx-thebe.js"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'dyndoc_output';</script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Acknowledgments" href="Reference.html" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="docsearch:language" content="en"/>
-  </head>
-  
-  
-  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
-
-  
-  
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-  
-  <input type="checkbox"
-          class="sidebar-toggle"
-          name="__primary"
-          id="__primary"/>
-  <label class="overlay overlay-primary" for="__primary"></label>
-  
-  <input type="checkbox"
-          class="sidebar-toggle"
-          name="__secondary"
-          id="__secondary"/>
-  <label class="overlay overlay-secondary" for="__secondary"></label>
-  
-  <div class="search-button__wrapper">
-    <div class="search-button__overlay"></div>
-    <div class="search-button__search-container">
-<form class="bd-search d-flex align-items-center"
-      action="search.html"
-      method="get">
-  <i class="fa-solid fa-magnifying-glass"></i>
-  <input type="search"
-         class="form-control"
-         name="q"
-         id="search-input"
-         placeholder="Search this book..."
-         aria-label="Search this book..."
-         autocomplete="off"
-         autocorrect="off"
-         autocapitalize="off"
-         spellcheck="false"/>
-  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
-</form></div>
-  </div>
-  
-    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
-    </nav>
-  
-  <div class="bd-container">
-    <div class="bd-container__inner bd-page-width">
-      
-      <div class="bd-sidebar-primary bd-sidebar">
-        
-
-  
-  <div class="sidebar-header-items sidebar-primary__section">
-    
-    
-    
-    
-  </div>
-  
-    <div class="sidebar-primary-items__start sidebar-primary__section">
-        <div class="sidebar-primary-item">
-  
-
-<a class="navbar-brand logo" href="intro.html">
-  
-  
-  
-  
-    
-    
-      
-    
-    
-    <img src="_static/logo.png" class="logo__image only-light" alt="Logo image"/>
-    <script>document.write(`<img src="_static/logo.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
-  
-  
-</a></div>
-        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
-    <div class="bd-toc-item navbar-nav active">
-        
-        <ul class="nav bd-sidenav bd-sidenav__home-link">
-            <li class="toctree-l1">
-                <a class="reference internal" href="intro.html">
-                    Increasing access to the NHANES 1988-2018 surveys & mortality linkage data via a user-friendly Stata program
-                </a>
-            </li>
-        </ul>
-        <ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Methods.html">Methods</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Results.html">Results</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Conclusion.html">Conclusions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Reference.html">Acknowledgments</a></li>
-
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">dyndoc_output from Stata</a></li>
-</ul>
-
-    </div>
-</nav></div>
-    </div>
-  
-  
-  <div class="sidebar-primary-items__end sidebar-primary__section">
-  </div>
-  
-  <div id="rtd-footer-container"></div>
-
-
-      </div>
-      
-      <main id="main-content" class="bd-main">
-        
-        
-
-<div class="sbt-scroll-pixel-helper"></div>
-
-          <div class="bd-content">
-            <div class="bd-article-container">
-              
-              <div class="bd-header-article">
-<div class="header-article-items header-article__inner">
-  
-    <div class="header-article-items__start">
-      
-        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
-  <span class="fa-solid fa-bars"></span>
-</label></div>
-      
-    </div>
-  
-  
-    <div class="header-article-items__end">
-      
-        <div class="header-article-item">
-
-<div class="article-header-buttons">
-
-
-
-
-
-<div class="dropdown dropdown-source-buttons">
-  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
-    <i class="fab fa-github"></i>
-  </button>
-  <ul class="dropdown-menu">
-      
-      
-      
-      <li><a href="https://github.com/executablebooks/jupyter-book" target="_blank"
-   class="btn btn-sm btn-source-repository-button dropdown-item"
-   title="Source repository"
-   data-bs-placement="left" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fab fa-github"></i>
-  </span>
-<span class="btn__text-container">Repository</span>
-</a>
-</li>
-      
-      
-      
-      
-      <li><a href="https://github.com/executablebooks/jupyter-book/issues/new?title=Issue%20on%20page%20%2Fdyndoc_output.html&body=Your%20issue%20content%20here." target="_blank"
-   class="btn btn-sm btn-source-issues-button dropdown-item"
-   title="Open an issue"
-   data-bs-placement="left" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-lightbulb"></i>
-  </span>
-<span class="btn__text-container">Open issue</span>
-</a>
-</li>
-      
-  </ul>
-</div>
-
-
-
-
-
-
-<div class="dropdown dropdown-download-buttons">
-  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
-    <i class="fas fa-download"></i>
-  </button>
-  <ul class="dropdown-menu">
-      
-      
-      
-      <li><a href="_sources/dyndoc_output.md" target="_blank"
-   class="btn btn-sm btn-download-source-button dropdown-item"
-   title="Download source file"
-   data-bs-placement="left" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-file"></i>
-  </span>
-<span class="btn__text-container">.md</span>
-</a>
-</li>
-      
-      
-      
-      
-      <li>
-<button onclick="window.print()"
-  class="btn btn-sm btn-download-pdf-button dropdown-item"
-  title="Print to PDF"
-  data-bs-placement="left" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-file-pdf"></i>
-  </span>
-<span class="btn__text-container">.pdf</span>
-</button>
-</li>
-      
-  </ul>
-</div>
-
-
-
-
-<button onclick="toggleFullScreen()"
-  class="btn btn-sm btn-fullscreen-button"
-  title="Fullscreen mode"
-  data-bs-placement="bottom" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-expand"></i>
-  </span>
-
-</button>
-
-
-<script>
-document.write(`
-  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
-    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
-    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
-    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
-  </button>
-`);
-</script>
-
-<script>
-document.write(`
-  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
-    <i class="fa-solid fa-magnifying-glass"></i>
-  </button>
-`);
-</script>
-
-</div></div>
-      
-    </div>
-  
-</div>
-</div>
-              
-              
-
-<div id="jb-print-docs-body" class="onlyprint">
-    <h1>dyndoc_output from Stata</h1>
-    <!-- Table of contents -->
-    <div id="print-main-content">
-        <div id="jb-print-toc">
-            
-        </div>
-    </div>
-</div>
-
-              
-                
-<div id="searchbox"></div>
-                <article class="bd-article" role="main">
-                  
-  <section class="tex2jax_ignore mathjax_ignore" id="dyndoc-output-from-stata">
-<h1>dyndoc_output from Stata<a class="headerlink" href="#dyndoc-output-from-stata" title="Permalink to this heading">#</a></h1>
-<p>Click the link to see printed dyndoc output from Stata.
-(Stata/SE ver17 was used to print the output.)</p>
-<p><a class="reference download internal" download="" href="_downloads/b21f3e07594820776b64e99a8682a3bd/nhanes_5.html"><span class="xref download myst">nhanes_5.html</span></a></p>
-</section>
-
-    <script type="text/x-thebe-config">
-    {
-        requestKernel: true,
-        binderOptions: {
-            repo: "binder-examples/jupyter-stacks-datascience",
-            ref: "master",
-        },
-        codeMirrorConfig: {
-            theme: "abcdef",
-            mode: "python"
-        },
-        kernelOptions: {
-            name: "python3",
-            path: "./."
-        },
-        predefinedOutput: true
-    }
-    </script>
-    <script>kernelName = 'python3'</script>
-
-                </article>
-              
-
-              
-              
-                <footer class="bd-footer-article">
-                  
-<div class="footer-article-items footer-article__inner">
-  
-    <div class="footer-article-item"><!-- Previous / next buttons -->
-<div class="prev-next-area">
-    <a class="left-prev"
-       href="Reference.html"
-       title="previous page">
-      <i class="fa-solid fa-angle-left"></i>
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Acknowledgments</p>
-      </div>
-    </a>
-</div></div>
-  
-</div>
-
-                </footer>
-              
-            </div>
-            
-            
-              
-            
-          </div>
-          <footer class="bd-footer-content">
-            
-<div class="bd-footer-content__inner container">
-  
-  <div class="footer-item">
-    
-<p class="component-author">
-By Junming Gong; Mu Jin; Sohyeon Kwon; Xueer Zhang
-</p>
-
-  </div>
-  
-  <div class="footer-item">
-    
-  <p class="copyright">
-    
-      © Copyright 2022.
-      <br/>
-    
-  </p>
-
-  </div>
-  
-  <div class="footer-item">
-    
-  </div>
-  
-  <div class="footer-item">
-    
-  </div>
-  
-</div>
-          </footer>
-        
-
-      </main>
-    </div>
-  </div>
-  
-  <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
-<script src="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
-
-  <footer class="bd-footer">
-  </footer>
-  </body>
-</html>
+</code></pre>
+<p><strong>Acknowledgments:</strong></p>
+<p>We initially published our Stata output in a Jupiter-book hosted by Github. All the .html content of the book was produced in a Python environment; however, <a href="nhanes.html">Stata .html output</a> will gradually replace the Python-based output of the book as we truly become advanced Stata users!</p>
+<p>VS Code terminal is our IDE choice for committing and pushing our git content to our hub and have established a seamless process for updating our publication.</p>
+<p><strong>References:</strong></p>
+<ol>
+<li><a href="https://jhustata.github.io/book/jjj.html">https://jhustata.github.io/book/jjj.html</a></li>
+<li><a href="https://jupyterbook.org/en/stable/start/your-first-book.html">https://jupyterbook.org/en/stable/start/your-first-book.html</a></li>
+<li><a href="https://www.stata.com/stata-news/news36-1/spotlight-markdown/">https://www.stata.com/stata-news/news36-1/spotlight-markdown/</a></li>
+<li><a href="https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.sas">https://wwwn.cdc.gov/nchs/data/nhanes3/1a/adult.sas</a></li>
+<li><a href="https://jhustata.github.io/class700/intro.html">https://jhustata.github.io/class700/intro.html</a></li>
+<li><a href="https://www.jhsph.edu/courses/course/37447/2022/340.700.71/advanced-stata-programming">https://www.jhsph.edu/courses/course/37447/2022/340.700.71/advanced-stata-programming</a></li>
+<li><a href="https://www.surgjournal.com/article/S0039-6060(18)30076-X/fulltext">Muzaale AD. Databases for surgical health services research: National Health and Nutrition Examination Survey. Surgery. 2019 May;165(5):873-875</a></li>
+<li><a href="https://www.ssc.wisc.edu/~hemken/Stataworkshops/dyndoc%20review/Review.html">https://www.ssc.wisc.edu/~hemken/Stataworkshops/dyndoc%20review/Review.html</a></li>
+<li><a href="https://towardsdatascience.com/write-markdown-latex-in-the-jupyter-notebook-10985edb91fd">https://towardsdatascience.com/write-markdown-latex-in-the-jupyter-notebook-10985edb91fd</a></li>
+</ol>
