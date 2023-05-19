@@ -1,10 +1,8 @@
 <p><strong>Increasing access to the NHANES 1988-2018 surveys &amp; mortality linkage data via a user-friendly Stata program</strong></p>
 <p>Junming Gong, Mu Jin, Sohyeon Kwon, and Xueer Zhang</p>
 <p><strong>Background:</strong></p>
-<p>We are developing skills that allow us to access publicly available large databases that may be queried to answer fundamental questions about the publics health. These datasets might exist in formats unfamiliar to Stata users or in sizes that cripple ones workflow.</p>
-<p>In our first two weeks, we curated a dataset with all the <a href="https://data.nber.org/mortality/">mortality records</a> in the United States from 1959-2017 and wrote a basic Stata script that output a <a href="https://jhustata.github.io/book/_downloads/9359d2ae4f8ad2efcfe2fd34e3547c35/mortality.png">two-way plot</a> showing annual trends in number of deaths during this period. In the subsequent two weeks we wrote a Stata program, <code>mortality</code>, that allows the user to define the time-period of interest, plus other parameters such as cause-of-death, and ultimately produce a similar two-way plot with the convenience of a Stata command.</p>
-<p>Our goal for the second-half of the class is to leverage this experience to give Stata users access to the entire range of NHANES surveys via a simple command, <code>nhanes</code>, with several user-defined options. We have not yet articulated what these options are but will do so on an emerging basis each week.</p>
-<p>Today let&rsquo;s start by reading in the alpha-version of this program, which we adopted from Chapter: <code>r(mean)</code> of the PH.340.600 book. Depending on your Stata edition, this program will either import a dataset with 20,000 observations and 3600 variables or 20,000 observations and 22 variables:</p>
+<p>The National Health and Nutrition Examination Survey (NHANES) is developed to assess the helath and nutritional status of general population in United States. The survey investigates various sections including demographic characterististics, physical examinations, laboratory data, and so on. The survey sample popoulation is a population representative sample selected by complex survey design.</p>
+<p>From this activity, we aimed to bring Stata work into the open science society.</p>
 <pre><code>. capture program drop nhanes
 
 . program define nhanes 
@@ -29,10 +27,12 @@
  12.                                 
 .                                 global github https://raw.githubusercontent.com/
  13.                                 global jhustata jhustata/book/main/
- 14.                                 global keepvars HSAGEIR BMPHT BMPWT HAZA8AK1 CEP GHP HAB1
+ 14.                                 global keepvars HSAGEIR BMPHT BMPWT HAZA8AK1 CEP GHP
+&gt;  HAB1
  15.                                 
 .                                 timer off 1
- 16.                                                                                         
+ 16.                                                                                     
+&gt;     
 .                         }
  17.                         
 .                         if 2 { //results:.dofiles
@@ -181,29 +181,30 @@ delimiter now cr
 . end 
 
 . nhanes
-   1:      0.01 /        7 =       0.0014
-   2:     33.71 /        7 =       4.8151
-   3:   2061.18 /        7 =     294.4536
-   4:     67.54 /        7 =       9.6487
-   5:    333.24 /        7 =      47.6056
-   6:     45.45 /        7 =       6.4924
-  31:    434.31 /        7 =      62.0446
-  32:   1267.31 /        7 =     181.0440
-  33:    359.55 /        7 =      51.3649
+   1:      0.01 /        6 =       0.0023
+   2:   9643.33 /        5 =    1928.6658
+   3:   3519.88 /        5 =     703.9752
+   4:     27.87 /        5 =       5.5738
+   5:    202.89 /        5 =      40.5782
+   6:     24.20 /        5 =       4.8400
+  21:      0.00 /        1 =       0.0000
+  31:    633.15 /        5 =     126.6294
+  32:   2316.87 /        5 =     463.3748
+  33:    569.86 /        5 =     113.9710
 
 </code></pre>
 <p><strong>Methods:</strong></p>
-<p>For Stata/BE or IC users this current program outputs an NHANES dataset with 22 pre-specified variables. Over the next week we shall release the next iteration of the program, which will allow the user to list the variables they wish to be imported from the CDC website.</p>
+<p>For Stata/BE or IC users this current program outputs an NHANES dataset with 22 pre-specified variables. We used Stata/SE for this program, therefore, there was no restriction in the variables.</p>
+<p>We created the two-way plot presenting the mortlaity in the United States from 1995-2017. To investigate the general health status by age groups during 2017-2018, we additionally created a simple two-way scatter plot which showed mean general health score by age groups. We provided the additional plot to provide more information about recent health status of US population which may be used to predict mortality in the future study.</p>
+<p>The general health status was measured by score (0:poor, 1: fair, 2: good, 3: very good: 4: Excellent).</p>
 <p><strong>Results:</strong></p>
-<p>When a Kaplan-Meier graph pops up on your screen, that will be your cue that the program has run to completion and that you have an NHANES III dataset in your <code>pwd</code>.</p>
+<p>According to the first Mortality plot, we could detect that the moratlity during 1988-2018 was higher when people self-reported their health as poor or bad.</p>
+<p>According to the second scatter plot, we observed that the self-reported health score was higher in the younger aged group in 2017-2018.</p>
 <pre><code>. set scheme s2color
 
 . nhanes
 
 </code></pre>
-<p><img src="Graph2.svg" ></p>
-<p><strong>Conclusions:</strong></p>
-<p>Now that we have established our workflow, updates to our program will be published on a weekly basis and the URL will be sent to the student team as well as the teaching team in the first five minutes of each class session. A question not to ask: shall we ever need to annotate our .do files if we can offer much richer documentation in e-books built using .html?</p>
 <pre><code>. use nh3andmort, clear
 (NHANES 1988-1994, survey &amp; mortality)
 
@@ -211,6 +212,45 @@ delimiter now cr
 obs: 19599 &amp; vars: 3643
 
 </code></pre>
+<p><img src="Graph5.svg" ></p>
+<pre><code>. use merged1.dta, clear
+
+. 
+. #delimit ;
+delimiter now ;
+. twoway 
+&gt;     scatter  
+&gt;              health_s age_g , 
+&gt;                  col(white) 
+&gt;                          mcolor(%20) 
+&gt;                          jitter(3) || 
+&gt; 
+&gt;         dot  
+&gt;              mean_health_s age_g, 
+&gt;                  col(blue) 
+&gt;                  msize(2)  
+&gt;                         legend(off ) 
+&gt;                         xlab(1 &quot;10s&quot; 
+&gt;                              2 &quot;20s&quot; 
+&gt;                                  3 &quot;30s&quot; 
+&gt;                                  4 &quot;40s&quot; 
+&gt;                                  5 &quot;50s&quot;
+&gt;                                  6 &quot;60s&quot;) 
+&gt;                 yline(90, lcol(red) lp(dash)) 
+&gt;                 xti(&quot;Age groups&quot;)
+&gt;                 yti(&quot;General Health Status&quot;)
+&gt;                 title(&quot;General Health Score by Age in 2017-2018 NHANES&quot;)
+&gt;                 ylabel(0(1)5);
+
+. #delimit cr
+delimiter now cr
+. graph export twoway_1.png, replace
+file twoway_1.png saved as PNG format
+
+</code></pre>
+<p><img src="Graph6.svg" ></p>
+<p><strong>Conclusions:</strong></p>
+<p>Undesirable status of self-reported health was associated with the increment of mortality throughout the 1988-2018. Younger aged group reported better general health status.</p>
 <p><strong>Acknowledgments:</strong></p>
 <p>We initially published our Stata output in a Jupiter-book hosted by Github. All the .html content of the book was produced in a Python environment; however, <a href="nhanes.html">Stata .html output</a> will gradually replace the Python-based output of the book as we truly become advanced Stata users!</p>
 <p>VS Code terminal is our IDE choice for committing and pushing our git content to our hub and have established a seamless process for updating our publication.</p>
