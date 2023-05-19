@@ -361,12 +361,43 @@ document.write(`
                   
   <section class="tex2jax_ignore mathjax_ignore" id="results">
 <h1>Results<a class="headerlink" href="#results" title="Permalink to this heading">#</a></h1>
-<p>When a Kaplan-Meier graph pops up on your screen, that will be your cue that the program has run to completion and that you have an NHANES III dataset in your <code class="docutils literal notranslate"><span class="pre">pwd</span></code>.</p>
+<p>According to the first Mortality plot, we could detect that the moratlity during 1988-2018 was higher when people self-reported their health as poor or bad.</p>
+<p>According to the second scatter plot, we observed that the self-reported health score was higher in the younger aged group in 2017-2018.</p>
 <div class="highlight-stata notranslate"><div class="highlight"><pre><span></span><span class="k">set</span> scheme s2color
 nhanes
 </pre></div>
 </div>
 <p><img alt="" src="_images/nh3andmort.png" /></p>
+<div class="highlight-stata notranslate"><div class="highlight"><pre><span></span><span class="k">use</span> merged1<span class="m">.</span>dta,<span class="k"> clear</span>
+
+#delimit ;
+<span class="k">twoway</span> 
+<span class="k">    scatter</span>  
+	     health_s age_g , 
+	         col(white) 
+			 mcolor(%<span class="m">20</span>) 
+			 jitter(<span class="m">3</span>) || 
+
+	dot  
+	     mean_health_s age_g, 
+		 col(blue) 
+		 msize(<span class="m">2</span>)  
+			legend(off ) 
+			xlab(<span class="m">1</span> <span class="s">&quot;10s&quot;</span> 
+			     <span class="m">2</span> <span class="s">&quot;20s&quot;</span> 
+				 <span class="m">3</span> <span class="s">&quot;30s&quot;</span> 
+				 <span class="m">4</span> <span class="s">&quot;40s&quot;</span> 
+				 <span class="m">5</span> <span class="s">&quot;50s&quot;</span>
+				 <span class="m">6</span> <span class="s">&quot;60s&quot;</span>) 
+		yline(<span class="m">90</span>, lcol(red) lp(dash)) 
+		xti(<span class="s">&quot;Age groups&quot;</span>)
+		yti(<span class="s">&quot;General Health Status&quot;</span>)
+		title(<span class="s">&quot;General Health Score by Age in 2017-2018 NHANES&quot;</span>)
+		ylabel(<span class="m">0</span>(<span class="m">1</span>)<span class="m">5</span>);
+#delimit cr
+</pre></div>
+</div>
+<p><img alt="" src="_images/twoway_1.png" /></p>
 </section>
 
     <script type="text/x-thebe-config">

@@ -2,3 +2,5 @@
 
 Junming Gong, Mu Jin, Sohyeon Kwon, and Xueer Zhang
 
+This jupyter book is for Stata 700 Class Activity. 
+
