@@ -361,7 +361,183 @@ document.write(`
                   
   <section class="tex2jax_ignore mathjax_ignore" id="methods">
 <h1>Methods<a class="headerlink" href="#methods" title="Permalink to this heading">#</a></h1>
-<p>For Stata/BE or IC users this current program outputs an NHANES dataset with 22 pre-specified variables. Over the next week we shall release the next iteration of the program, which will allow the user to list the variables they wish to be imported from the CDC website.</p>
+<p>For Stata/BE or IC users this current program outputs an NHANES dataset with 22 pre-specified variables. We used Stata/SE for this program, therefore, there was no restriction in the variables.</p>
+<p>We created the two-way plot presenting the mortlaity in the United States from 1995-2017. To investigate the general health status by age groups during 2017-2018, we additionally created a simple two-way scatter plot which showed mean general health score by age groups. We provided the additional plot to provide more information about recent health status of US population which may be used to predict mortality in the future study.</p>
+<p>The general health status was measured by score (0:poor, 1: fair, 2: good, 3: very good: 4: Excellent).</p>
+<div class="highlight-stata notranslate"><div class="highlight"><pre><span></span><span class="k">capture program drop</span> nhanes
+<span class="k">program</span> define nhanes 
+<span class="k">    </span>
+<span class="k">	preserve</span> 
+<span class="k">	    </span>
+<span class="k">		qui</span> {
+<span class="k">			</span>
+<span class="k">			if</span> <span class="m">0</span> { <span class="c1">//background:r(mean) </span>
+				
+				<span class="m">1</span>. Stata<span class="o">/</span>BE or IC
+				<span class="m">2</span>. <span class="nf">r</span>(k) <span class="o">&lt;</span> <span class="m">2048</span>
+				<span class="m">3</span>. exam<span class="m">.</span>DAT: <span class="nf">r</span>(k) <span class="o">==</span> <span class="m">2368</span>
+				<span class="m">4</span>. inaccessible to jhustata
+				<span class="m">5</span>.<span class="k"> program</span> to grant access
+				
+			}
+<span class="k">			</span>
+<span class="k">			if</span> <span class="m">1</span> { <span class="c1">//methods:$keepvars</span>
+<span class="k">				</span>
+<span class="k">				timer on</span> <span class="m">1</span>
+<span class="k">				</span>
+<span class="k">				global</span> github https:<span class="o">//</span>raw<span class="m">.</span>githubusercontent<span class="m">.</span>com<span class="o">/</span>
+<span class="k">				global</span> jhustata jhustata<span class="o">/</span>book<span class="o">/</span>main<span class="o">/</span>
+<span class="k">				global</span> keepvars HSAGEIR BMPHT BMPWT HAZA8AK1 CEP GHP HAB1
+<span class="k">				</span>
+<span class="k">				timer</span> off <span class="m">1</span>
+											
+			}
+<span class="k">			</span>
+<span class="k">			if</span> <span class="m">2</span> { <span class="c1">//results:.dofiles</span>
+<span class="k">			</span>
+<span class="k">			    timer on</span> <span class="m">2</span>
+<span class="k">				</span>
+<span class="k">				clear</span>
+<span class="k">				</span>
+<span class="k">				do</span> <span class="vg">${github}${$jhustata}</span>nh3mort<span class="m">.</span>do 
+<span class="k">				</span>
+<span class="k">				if</span> <span class="nf">c</span>(edition_real) <span class="o">==</span> <span class="s">&quot;BE&quot;</span>  | <span class="nf">c</span>(edition_real) <span class="o">==</span> <span class="s">&quot;IC&quot;</span> {
+<span class="k">					</span>
+<span class="k">					clear</span> 
+<span class="k">					</span>
+<span class="k">					do</span> <span class="vg">${github}${$jhustata}</span>nhanes<span class="o">-</span>alpha<span class="o">-</span>if2<span class="m">.</span>do 
+					
+				}
+<span class="k">				</span>
+<span class="k">				else</span> { 
+<span class="k">					</span>
+<span class="k">					clear</span> 
+<span class="k">					</span>
+<span class="k">					do</span> <span class="vg">${github}${$jhustata}</span>nhanes<span class="o">-</span>alpha<span class="o">-</span>if0<span class="m">.</span>do
+					
+				}
+<span class="k">				</span>
+<span class="k">				</span>
+<span class="k">				timer</span> off <span class="m">2</span>
+				
+			}
+<span class="k">			</span>
+<span class="k">			if</span> <span class="m">3</span> { <span class="c1">//conclusions:queueing</span>
+<span class="k">			</span>
+<span class="k">			    timer on</span> <span class="m">3</span>
+<span class="k">			</span>
+<span class="k">			    timer on</span> <span class="m">31</span>
+<span class="k">				clear</span>
+<span class="k">				do</span> adult<span class="m">.</span>do
+<span class="k">				rename</span> <span class="o">*</span>,lower
+<span class="k">				save</span> adult<span class="m">.</span>dta,replace 
+<span class="k">				timer</span> off <span class="m">31</span>
+<span class="k">				</span>
+<span class="k">				timer on</span> <span class="m">32</span>
+<span class="k">				clear</span> 
+<span class="k">				do</span> exam<span class="m">.</span>do
+<span class="k">				rename</span> <span class="o">*</span>,lower
+<span class="k">				save</span> exam<span class="m">.</span>dta,replace 
+<span class="k">				timer</span> off <span class="m">32</span>
+<span class="k">				</span>
+<span class="k">				timer on</span> <span class="m">33</span>
+<span class="k">				clear</span>
+<span class="k">				do lab</span><span class="m">.</span>do
+<span class="k">				rename</span> <span class="o">*</span>,lower
+<span class="k">				save lab</span><span class="m">.</span>dta,replace 
+<span class="k">				timer</span> off <span class="m">33</span>
+<span class="k">				</span>
+<span class="k">				timer</span> off <span class="m">3</span>
+				
+			}
+
+<span class="k">			if</span> <span class="m">4</span> { <span class="c1">//acknowledge:linkage</span>
+<span class="k">				</span>
+<span class="k">				timer on</span> <span class="m">4</span>
+<span class="k">				</span>
+<span class="k">				use</span> adult,<span class="k"> clear</span>
+<span class="k">				merge</span> <span class="m">1</span>:<span class="m">1</span> seqn using exam,nogen
+<span class="k">				merge</span> <span class="m">1</span>:<span class="m">1</span> seqn using<span class="k"> lab</span>,nogen
+<span class="k">				merge</span> <span class="m">1</span>:<span class="m">1</span> seqn using nh3mort,nogen<span class="k"> keep</span>(matched)
+<span class="k">				</span>
+<span class="k">				timer</span> off <span class="m">4</span>
+				
+			}
+<span class="k">			</span>
+<span class="k">			if</span> <span class="m">5</span> { <span class="c1">//dataset4class:</span>
+<span class="k">				</span>
+<span class="k">				timer on</span> <span class="m">5</span>
+<span class="k">				</span>
+<span class="k">				compress</span>
+<span class="k">				lab</span> dat <span class="s">&quot;NHANES 1988-1994, survey &amp; mortality&quot;</span>
+<span class="k">				save</span> <span class="s">&quot;nh3andmort.dta&quot;</span>,<span class="k"> replace</span> 
+<span class="k">				</span>
+<span class="k">				timer</span> off <span class="m">5</span>
+				
+			}
+<span class="k">			</span>
+<span class="k">			if</span> <span class="m">6</span> { <span class="c1">//survivalanalysis:</span>
+<span class="k">				</span>
+<span class="k">				timer on</span> <span class="m">6</span>
+<span class="k">				</span>
+<span class="k">        		lookfor</span> mort
+<span class="k">        		codebook</span> mortstat
+<span class="k">        		lookfor</span> follow
+<span class="k">        		g</span> years=permth_exm<span class="o">/</span><span class="m">12</span>
+
+<span class="k">        		lookfor</span> health
+<span class="k">        		codebook</span> hab1
+<span class="k">        		global</span> subgroup:<span class="k"> var lab</span> hab1
+<span class="k">    </span>
+<span class="k">        		stset</span> years, fail(mortstat)
+
+        		#delimit ;
+<span class="k">        		sts graph if</span> <span class="nf">inrange</span>(hab1,<span class="m">1</span>,<span class="m">5</span>),
+<span class="k">        		   by</span>(hab1)
+        		   fail
+        		   ti(<span class="s">&quot;Mortality in NHANES III&quot;</span>,pos(<span class="m">11</span>))
+        		   subti(<span class="s">&quot;by self report: </span><span class="vg">${subgroup}</span><span class="s">&quot;</span>,pos(<span class="m">11</span>))
+        		   yti(<span class="s">&quot;%&quot;</span>,orientation(horizontal))
+        		   xti(<span class="s">&quot;Years&quot;</span>)
+        		   per(<span class="m">100</span>)
+        		   ylab(<span class="m">0</span>(<span class="m">20</span>)<span class="m">80</span>,
+<span class="k">        		       format</span>(<span class="nx">%3.0f</span>)
+        		       angle(<span class="m">360</span>)
+        		   )
+        		   legend(on
+<span class="k">        		       lab</span>(<span class="m">1</span> <span class="s">&quot;Excellent&quot;</span>)
+<span class="k">        		       lab</span>(<span class="m">2</span> <span class="s">&quot;Good&quot;</span>)
+<span class="k">        		       lab</span>(<span class="m">3</span> <span class="s">&quot;Fair&quot;</span>)
+<span class="k">        		       lab</span>(<span class="m">4</span> <span class="s">&quot;Bad&quot;</span>)
+<span class="k">        		       lab</span>(<span class="m">5</span> <span class="s">&quot;Poor&quot;</span>)
+        		       ring(<span class="m">0</span>)
+        		       pos(<span class="m">11</span>)
+        		       col(<span class="m">1</span>)
+<span class="k">        		       order</span>(<span class="m">5</span> <span class="m">4</span> <span class="m">3</span> <span class="m">2</span> <span class="m">1</span>)
+        		   )
+<span class="k">        		   note</span>(<span class="s">&quot;Source: RDC/NCHS/CDC/DHHS&quot;</span>)  
+        		;
+        		#delimit cr
+<span class="k">        		</span>
+<span class="k">        		graph</span> export nh3andmort<span class="m">.</span>png,replace 
+<span class="k">        		</span>
+<span class="k">        		stcox</span> i<span class="m">.</span>hab1<span class="k"> if</span> <span class="nf">inrange</span>(hab1,<span class="m">1</span>,<span class="m">5</span>)
+<span class="k">		</span>
+<span class="k">		</span>
+<span class="k">				timer</span> off <span class="m">6</span>
+				
+			}
+<span class="k">			</span>
+<span class="k">			noi timer list</span> 
+			
+		}
+<span class="k">			</span>
+<span class="k">	restore</span> 
+<span class="k">	</span>
+<span class="k">end</span> 
+nhanes   
+</pre></div>
+</div>
 </section>
 
     <script type="text/x-thebe-config">

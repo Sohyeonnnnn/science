@@ -361,13 +361,8 @@ document.write(`
                   
   <section class="tex2jax_ignore mathjax_ignore" id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">#</a></h1>
-<p>We are developing skills that allow us to access publicly available large databases that may be queried to answer fundamental questions about the publics health. These datasets might exist in formats unfamiliar to Stata users or in sizes that cripple ones workflow.</p>
-<p>In our first two weeks, we curated a dataset with all the <a class="reference external" href="https://data.nber.org/mortality/">mortality records</a> in the United States from 1959-2017 and wrote a basic Stata script that output a <a class="reference external" href="https://jhustata.github.io/book/_downloads/9359d2ae4f8ad2efcfe2fd34e3547c35/mortality.png">two-way plot</a> showing annual trends in number of deaths during this period. In the subsequent two weeks we wrote a Stata program, <code class="docutils literal notranslate"><span class="pre">mortality</span></code>, that allows the user to define the time-period of interest, plus other parameters such as cause-of-death, and ultimately produce a similar two-way plot with the convenience of a Stata command.</p>
-<p>Our goal for the second-half of the class is to leverage this experience to give Stata users access to the entire range of NHANES surveys via a simple command, <code class="docutils literal notranslate"><span class="pre">nhanes</span></code>, with several user-defined options. We have not yet articulated what these options are but will do so on an emerging basis each week.</p>
-<p>Today let’s start by reading in the alpha-version of this program, which we adopted from Chapter: <code class="docutils literal notranslate"><span class="pre">r(mean)</span></code> of the PH.340.600 book. Depending on your Stata edition, this program will either import a dataset with 20,000 observations and 3600 variables or 20,000 observations and 22 variables:</p>
-<div class="highlight-stata notranslate"><div class="highlight"><pre><span></span><span class="k">qui do</span> https:<span class="o">//</span>raw<span class="m">.</span>githubusercontent<span class="m">.</span>com<span class="o">/</span>jhustata<span class="o">/</span>book<span class="o">/</span>main<span class="o">/</span>nhanes<span class="o">-</span>alpha<span class="m">.</span>ado      
-</pre></div>
-</div>
+<p>The National Health and Nutrition Examination Survey (NHANES) is developed to assess the helath and nutritional status of general population in United States. The survey investigates various sections including demographic characterististics, physical examinations, laboratory data, and so on. The survey sample popoulation is a population representative sample selected by complex survey design.</p>
+<p>From this activity, we aimed to bring Stata work into the open science society.</p>
 </section>
 
     <script type="text/x-thebe-config">
